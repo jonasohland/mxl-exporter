@@ -7,7 +7,7 @@ import (
 	"github.com/google/uuid"
 )
 
-func getFlowIDFromPath(path string) (string, bool) {
+func GetFlowIDFromPath(path string) (string, bool) {
 	path = filepath.Base(path)
 	id, found := strings.CutSuffix(path, ".mxl-flow")
 	if !found {
@@ -22,7 +22,7 @@ func getFlowIDFromPath(path string) (string, bool) {
 	return id, err == nil
 }
 
-func isFlowDir(path string) bool {
-	_, ok := getFlowIDFromPath(path)
+func IsFlowDir(path string) bool {
+	_, ok := GetFlowIDFromPath(path)
 	return ok
 }

@@ -11,6 +11,7 @@ import (
 
 	mmap "github.com/edsrzf/mmap-go"
 	"github.com/google/uuid"
+	"github.com/jonasohland/mxl-exporter/pkg/mxlsys"
 )
 
 var (
@@ -96,8 +97,8 @@ type GroupHint struct {
 }
 
 type FlowDefinition struct {
-	Copyright     string              `json:"$copyright"`
-	License       string              `json:"$license"`
+	Copyright     string              `json:"$copyright"` // probably not meant to be actually read by any applications
+	License       string              `json:"$license"`   // probably not meant to be actually read by any applications
 	Description   string              `json:"description"`
 	SourceID      string              `json:"source_id,omitempty"`
 	DeviceID      string              `json:"device_id,omitempty"`
@@ -182,7 +183,7 @@ func (f *Flow) IsValid() bool {
 }
 
 func (f *Flow) GetInfo() (*FlowConfigInfo, *FlowRuntimeInfo, error) {
-	var raw rawFlowInfo
+	var raw mxlsys.FlowInfo
 	if err := binary.Read(bytes.NewReader(f.mm), binary.NativeEndian, &raw); err != nil {
 		return nil, nil, err
 	}
@@ -193,9 +194,12 @@ func (f *Flow) GetInfo() (*FlowConfigInfo, *FlowRuntimeInfo, error) {
 	}
 
 	configInfo := &FlowConfigInfo{
-		ID:                     id.String(),
-		Format:                 dataFormatMap[raw.Config.Common.Format],
-		Rate:                   raw.Config.Common.Rate,
+		ID:     id.String(),
+		Format: dataFormatMap[raw.Config.Common.Format],
+		Rate: Rational{
+			Numerator:   raw.Config.Common.Rate.Numerator,
+			Denominator: raw.Config.Common.Rate.Denominator,
+		},
 		MaxCommitBatchSizeHint: int(raw.Config.Common.MaxCommitBatchSizeHint),
 		MaxSyncBatchSizeHint:   int(raw.Config.Common.MaxSyncBatchSizeHint),
 		PayloadLocation:        payloadLocationMap[raw.Config.Common.PayloadLocation],
@@ -203,8 +207,8 @@ func (f *Flow) GetInfo() (*FlowConfigInfo, *FlowRuntimeInfo, error) {
 	}
 
 	if configInfo.Format == DataFormatData || configInfo.Format == DataFormatVideo {
-		var craw rawDiscreteFlowConfigInfo
-		if err := binary.Read(bytes.NewReader(raw.Config.Concrete[:]), binary.NativeEndian, &craw); err != nil {
+		var craw mxlsys.DiscreteFlowConfigInfo
+		if err := binary.Read(bytes.NewReader(raw.Config.Typed[:]), binary.NativeEndian, &craw); err != nil {
 			return nil, nil, err
 		}
 
@@ -213,8 +217,8 @@ func (f *Flow) GetInfo() (*FlowConfigInfo, *FlowRuntimeInfo, error) {
 			GrainCount: craw.GrainCount,
 		}
 	} else {
-		var craw rawContFlowConfigInfo
-		if err := binary.Read(bytes.NewReader(raw.Config.Concrete[:]), binary.NativeEndian, &craw); err != nil {
+		var craw mxlsys.ContinuousFlowConfigInfo
+		if err := binary.Read(bytes.NewReader(raw.Config.Typed[:]), binary.NativeEndian, &craw); err != nil {
 			return nil, nil, err
 		}
 

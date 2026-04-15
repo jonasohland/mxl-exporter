@@ -94,7 +94,7 @@ func (d *Discoverer) reloadAt(path string, discovered domainPathCache) {
 			continue
 		}
 
-		if isFlowDir(entry.Name()) {
+		if IsFlowDir(entry.Name()) {
 			isDomain = true
 		} else {
 			d.reloadAt(filepath.Join(path, entry.Name()), discovered)

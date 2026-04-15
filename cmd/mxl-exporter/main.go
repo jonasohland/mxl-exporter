@@ -55,6 +55,10 @@ func (l *LoggingFilesytemReceiver) RemoveFilesystem(path string) {
 	slog.Info("filesystem removed", "filesystem-path", path)
 }
 
+func (l *LoggingFilesytemReceiver) UpdateFilesystem(path string, domainList []string) {
+	slog.Info("domain list changed on filesystem", "filesystem-path", path, "domain-list", domainList)
+}
+
 func orDefaultDuration(dd time.Duration, v *time.Duration) time.Duration {
 	if v == nil {
 		return dd
@@ -74,6 +78,12 @@ func launch(ctx context.Context, wg *sync.WaitGroup, opts *Options) error {
 	srv.Mux(metrics)
 
 	if err := reg.Register(flowCollector); err != nil {
+		return err
+	}
+	if err := reg.Register(domainCollector); err != nil {
+		return err
+	}
+	if err := reg.Register(fsCollector); err != nil {
 		return err
 	}
 

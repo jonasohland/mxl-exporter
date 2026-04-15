@@ -67,7 +67,7 @@ func (w *Watcher) AddDomain(path string) {
 
 	flows := make([]string, 0)
 	for _, entry := range entries {
-		id, ok := getFlowIDFromPath(entry.Name())
+		id, ok := GetFlowIDFromPath(entry.Name())
 		if ok {
 			flows = append(flows, id)
 		}
@@ -111,7 +111,7 @@ func (w *Watcher) run(ctx context.Context) {
 				continue
 			}
 
-			if isFlowDir(ev.Name) {
+			if IsFlowDir(ev.Name) {
 				if ev.Op.Has(fsnotify.Create) {
 					w.flowAddedEvent(ev.Name)
 				} else if ev.Op.Has(fsnotify.Remove) {
@@ -134,7 +134,7 @@ func (w *Watcher) flowAddedEvent(path string) {
 		return
 	}
 
-	id, ok := getFlowIDFromPath(path)
+	id, ok := GetFlowIDFromPath(path)
 	if !ok {
 		return
 	}
@@ -155,7 +155,7 @@ func (w *Watcher) flowRemovedEvent(path string) {
 		return
 	}
 
-	id, ok := getFlowIDFromPath(path)
+	id, ok := GetFlowIDFromPath(path)
 	if !ok {
 		return
 	}

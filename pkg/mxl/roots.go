@@ -17,6 +17,7 @@ var (
 
 type FilesytemReceiver interface {
 	AddFilesystem(path string)
+	UpdateFilesystem(path string, domains []string)
 	RemoveFilesystem(path string)
 }
 
@@ -91,6 +92,10 @@ func (rd *FilesystemDiscoverer) AddDomain(domain string) {
 			recv.AddFilesystem(path)
 		}
 	}
+
+	for _, recv := range rd.recv {
+		recv.UpdateFilesystem(path, rd.roots[path])
+	}
 }
 
 func (rd *FilesystemDiscoverer) RemoveDomain(domain string) {
@@ -105,6 +110,10 @@ func (rd *FilesystemDiscoverer) RemoveDomain(domain string) {
 			}
 
 			delete(rd.roots, path)
+		} else {
+			for _, recv := range rd.recv {
+				recv.UpdateFilesystem(path, rd.roots[path])
+			}
 		}
 	}
 }
