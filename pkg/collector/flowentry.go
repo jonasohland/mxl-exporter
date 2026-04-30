@@ -68,7 +68,6 @@ func (f *FlowEntry) Reopen() error {
 		return err
 	}
 
-	f.log.Info("flow opened")
 	f.flow = flow
 	f.attemptCacheRefresh()
 	return nil
@@ -120,7 +119,6 @@ func (f *FlowEntry) Close() {
 			f.log.Warn("failed to close flow", "error", err)
 		}
 		f.flow = nil
-		f.log.Info("flow closed")
 	}
 }
 

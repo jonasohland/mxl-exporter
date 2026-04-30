@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"time"
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/samber/lo"
@@ -17,6 +18,7 @@ type FlowReceiver interface {
 }
 
 type watcherEntry struct {
+	ino   uint64
 	flows []string
 }
 
@@ -49,6 +51,15 @@ func (w *Watcher) AddDomain(path string) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 
+	w.add(path)
+}
+
+func (w *Watcher) add(path string) {
+	ino, err := getIno(path)
+	if err != nil {
+		slog.Error("failed to get directory ino for domain", "path", path, "error", err)
+	}
+
 	if err := w.notify.Add(path); err != nil {
 		slog.Error("failed to add inotify watch", "path", path, "error", err)
 	}
@@ -62,7 +73,6 @@ func (w *Watcher) AddDomain(path string) {
 	entries, err := os.ReadDir(path)
 	if err != nil {
 		slog.Error("failed to read domain directory entries", "error", err)
-		return
 	}
 
 	flows := make([]string, 0)
@@ -73,7 +83,7 @@ func (w *Watcher) AddDomain(path string) {
 		}
 	}
 
-	w.cache[path] = &watcherEntry{flows: flows}
+	w.cache[path] = &watcherEntry{ino: ino, flows: flows}
 
 	for _, id := range flows {
 		w.onFlowAdded(path, id)
@@ -84,6 +94,10 @@ func (w *Watcher) RemoveDomain(path string) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 
+	w.remove(path)
+}
+
+func (w *Watcher) remove(path string) {
 	if err := w.notify.Remove(path); err != nil {
 		slog.Error("failed to remove inotify watch", "path", path, "error", err)
 	}
@@ -103,6 +117,8 @@ func (w *Watcher) RemoveDomain(path string) {
 func (w *Watcher) run(ctx context.Context) {
 	for {
 		select {
+		case <-time.After(4 * time.Second):
+			w.refreshDomains()
 		case ev, ok := <-w.notify.Events:
 			if !ok {
 				return
@@ -120,6 +136,24 @@ func (w *Watcher) run(ctx context.Context) {
 			}
 		case <-ctx.Done():
 			return
+		}
+	}
+}
+
+// Handles cases where the domain directory is removed and re-created
+func (w *Watcher) refreshDomains() {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+
+	for path, entry := range w.cache {
+		ino, err := getIno(path)
+		if err != nil {
+			continue
+		}
+
+		if entry.ino != ino {
+			w.remove(path)
+			w.add(path)
 		}
 	}
 }
