@@ -4,7 +4,7 @@ go 1.26.1
 
 require (
 	github.com/alecthomas/kong v1.15.0
-	github.com/jonasohland/mxl-utils v0.0.0-20260827150418-f913e93f650b
+	github.com/jonasohland/mxl-utils v0.0.0-20260827153849-f0fa53e6d421
 	github.com/prometheus/client_golang v1.23.2
 	github.com/samber/lo v1.53.0
 	golang.org/x/sys v0.42.0

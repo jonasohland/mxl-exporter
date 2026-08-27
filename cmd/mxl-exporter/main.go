@@ -11,8 +11,8 @@ import (
 
 	"github.com/alecthomas/kong"
 	"github.com/jonasohland/mxl-exporter/pkg/collector"
-	"github.com/jonasohland/mxl-utils/pkg/mxl"
 	"github.com/jonasohland/mxl-exporter/pkg/server"
+	"github.com/jonasohland/mxl-utils/pkg/mxl"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -27,15 +27,15 @@ type Options struct {
 	FlowLifetime    *time.Duration
 }
 
-type LoggingDomainRecevier struct{}
+type LoggingDomainReceiver struct{}
 type LoggingFlowReceiver struct{}
-type LoggingFilesytemReceiver struct{}
+type LoggingFilesystemReceiver struct{}
 
-func (l *LoggingDomainRecevier) AddDomain(path string) {
+func (l *LoggingDomainReceiver) AddDomain(path string) {
 	slog.Info("domain discovered", "domain-path", path)
 }
 
-func (l *LoggingDomainRecevier) RemoveDomain(path string) {
+func (l *LoggingDomainReceiver) RemoveDomain(path string) {
 	slog.Info("domain removed", "domain-path", path)
 }
 
@@ -47,15 +47,15 @@ func (l *LoggingFlowReceiver) RemoveFlow(domain, id string) {
 	slog.Info("flow removed", "domain-path", domain, "flow-id", id)
 }
 
-func (l *LoggingFilesytemReceiver) AddFilesystem(path string) {
+func (l *LoggingFilesystemReceiver) AddFilesystem(path string) {
 	slog.Info("filesystem discovered", "filesystem-path", path)
 }
 
-func (l *LoggingFilesytemReceiver) RemoveFilesystem(path string) {
+func (l *LoggingFilesystemReceiver) RemoveFilesystem(path string) {
 	slog.Info("filesystem removed", "filesystem-path", path)
 }
 
-func (l *LoggingFilesytemReceiver) UpdateFilesystem(path string, domainList []string) {
+func (l *LoggingFilesystemReceiver) UpdateFilesystem(path string, domainList []string) {
 	slog.Info("domain list changed on filesystem", "filesystem-path", path, "domain-list", domainList)
 }
 
@@ -87,8 +87,8 @@ func launch(ctx context.Context, wg *sync.WaitGroup, opts *Options) error {
 		return err
 	}
 
-	roots := mxl.NewFilesystemDiscoverer([]mxl.FilesytemReceiver{
-		&LoggingFilesytemReceiver{},
+	roots := mxl.NewFilesystemDiscoverer([]mxl.FilesystemReceiver{
+		&LoggingFilesystemReceiver{},
 		fsCollector,
 	})
 
@@ -104,7 +104,7 @@ func launch(ctx context.Context, wg *sync.WaitGroup, opts *Options) error {
 	mxl.NewDiscoverer(
 		ctx, wg,
 		[]mxl.DomainReceiver{
-			&LoggingDomainRecevier{},
+			&LoggingDomainReceiver{},
 			watcher,
 			domainCollector,
 			roots,
