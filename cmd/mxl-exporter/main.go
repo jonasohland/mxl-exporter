@@ -11,7 +11,7 @@ import (
 
 	"github.com/alecthomas/kong"
 	"github.com/jonasohland/mxl-exporter/pkg/collector"
-	"github.com/jonasohland/mxl-exporter/pkg/mxl"
+	"github.com/jonasohland/mxl-utils/pkg/mxl"
 	"github.com/jonasohland/mxl-exporter/pkg/server"
 	"github.com/prometheus/client_golang/prometheus"
 )

@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/jonasohland/mxl-exporter/pkg/mxl"
+	"github.com/jonasohland/mxl-utils/pkg/mxl"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/samber/lo"
 )
