@@ -46,7 +46,21 @@ It does **not** participate in MXL data transport — it is a passive observer t
 
 ## Kubernetes Deployment
 
-The exporter runs as a sidecar container inside your existing MXL application pod, sharing its domain volume read-only.
+### Helm chart
+
+The chart in [charts/mxl-exporter](charts/mxl-exporter) installs the exporter as a DaemonSet. Every node gets one pod, and each pod mounts `/dev/shm` of its node read-only.
+
+```bash
+helm install mxl-exporter ./charts/mxl-exporter \
+  --namespace monitoring --create-namespace \
+  --set podMonitor.enabled=true
+```
+
+See the [chart README](charts/mxl-exporter/README.md) for the values reference.
+
+### Sidecar
+
+The exporter also runs as a sidecar container inside your existing MXL application pod, sharing its domain volume read-only.
 
 ```yaml
 # Deployment → spec.template.spec.containers

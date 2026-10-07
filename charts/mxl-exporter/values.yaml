@@ -1,0 +1,153 @@
+# Default values for mxl-exporter.
+image:
+  repository: jonasohland/mxl-exporter
+  # Overrides the image tag. Defaults to the chart appVersion.
+  tag: ""
+  pullPolicy: IfNotPresent
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+# Exporter command line configuration.
+exporter:
+  # Address the HTTP server binds to. Keep 0.0.0.0 so that Prometheus can
+  # reach the pod.
+  listen:
+    address: 0.0.0.0
+    port: 2284
+  # Extra directories to scan for MXL domains (--search). The shm mount path
+  # is added automatically when shm.search is true.
+  search: []
+  # Static domain paths that are never removed automatically (--domain).
+  domains: []
+  # How long entries stay in the metrics output after they disappear from the
+  # system. Leave a value empty to use the exporter default.
+  lifetime:
+    # --default-lifetime, applies to every entry kind. Exporter default: 24h.
+    default: ""
+    # --fs-lifetime, overrides the default for filesystem entries.
+    filesystem: ""
+    # --domain-lifetime, overrides the default for domain entries.
+    domain: ""
+    # --flow-lifetime, overrides the default for flow entries.
+    flow: ""
+  # Additional command line arguments, appended last.
+  extraArgs: []
+  # Additional environment variables for the container.
+  env: []
+  envFrom: []
+# Host shared memory mount. MXL domains live in /dev/shm on the node, so the
+# exporter mounts it read only. The mount replaces the shared memory volume
+# that the container runtime creates for the pod.
+shm:
+  enabled: true
+  # Path on the node.
+  hostPath: /dev/shm
+  # Path inside the container. Keep it equal to hostPath so that the "domain"
+  # metric labels report the same paths as the node.
+  mountPath: /dev/shm
+  # Pass the mount path to --search.
+  search: true
+# Extra volumes and mounts, for example a hostPath or PVC that holds domains
+# outside of /dev/shm. Add the mount path to exporter.search to scan it.
+extraVolumes: []
+extraVolumeMounts: []
+serviceAccount:
+  create: true
+  automount: false
+  annotations: {}
+  # Name of the service account. Generated from the release name if empty.
+  name: ""
+# ClusterIP service in front of the pods. A PodMonitor does not need it. A
+# ServiceMonitor does.
+service:
+  enabled: true
+  type: ClusterIP
+  port: 2284
+  # Set to "None" for a headless service, so that a ServiceMonitor scrapes
+  # every pod instead of one random pod.
+  clusterIP: None
+  annotations: {}
+  labels: {}
+# PodMonitor for the Prometheus Operator. Preferred over a ServiceMonitor for
+# a DaemonSet, because it targets the pods directly.
+podMonitor:
+  enabled: false
+  # Namespace for the PodMonitor. Defaults to the release namespace.
+  namespace: ""
+  # Extra labels, for example the release label your Prometheus selects on.
+  labels: {}
+  annotations: {}
+  interval: 30s
+  scrapeTimeout: ""
+  honorLabels: false
+  relabelings: []
+  metricRelabelings: []
+# ServiceMonitor for the Prometheus Operator. Requires service.enabled.
+serviceMonitor:
+  enabled: false
+  namespace: ""
+  labels: {}
+  annotations: {}
+  interval: 30s
+  scrapeTimeout: ""
+  honorLabels: false
+  relabelings: []
+  metricRelabelings: []
+# DaemonSet update strategy.
+updateStrategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxUnavailable: 1
+# Time the pod gets to shut down before the kubelet kills it.
+terminationGracePeriodSeconds: 30
+podAnnotations: {}
+podLabels: {}
+# Applies to the whole pod. Set runAsUser to 0 if the MXL domain files on the
+# node are not readable by other users.
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 65534
+  runAsGroup: 65534
+  fsGroup: 65534
+  seccompProfile:
+    type: RuntimeDefault
+# Applies to the exporter container. The exporter reads only, so it needs no
+# capabilities and no writable root filesystem.
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  privileged: false
+  capabilities:
+    drop:
+      - ALL
+# Memory use grows with the number of mapped flows, so there is no default
+# limit. Measure your workload before you set one.
+resources: {}
+# requests:
+#   cpu: 10m
+#   memory: 32Mi
+# limits:
+#   memory: 256Mi
+
+# Both probes call GET /metrics, because the exporter has no separate health
+# endpoint.
+livenessProbe:
+  enabled: true
+  initialDelaySeconds: 5
+  periodSeconds: 20
+  timeoutSeconds: 5
+  failureThreshold: 3
+readinessProbe:
+  enabled: true
+  initialDelaySeconds: 2
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+hostNetwork: false
+dnsPolicy: ""
+priorityClassName: ""
+nodeSelector: {}
+# Empty by default, so the exporter runs only on schedulable nodes. Add
+# tolerations if you want it on tainted nodes, for example control planes.
+tolerations: []
+affinity: {}

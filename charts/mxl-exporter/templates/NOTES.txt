@@ -1,0 +1,28 @@
+{{ include "mxl-exporter.fullname" . }} runs as a DaemonSet in namespace {{ .Release.Namespace }}.
+
+{{ if .Values.shm.enabled -}}
+Each pod mounts {{ .Values.shm.hostPath }} from its node at {{ .Values.shm.mountPath }}, read only.
+{{- else -}}
+The host shared memory mount is disabled. Set shm.enabled=true, or add your own
+volume through extraVolumes and extraVolumeMounts.
+{{- end }}
+
+To read the metrics of one pod:
+
+  kubectl -n {{ .Release.Namespace }} port-forward \
+    daemonset/{{ include "mxl-exporter.fullname" . }} {{ .Values.exporter.listen.port }}:{{ .Values.exporter.listen.port }}
+  curl http://127.0.0.1:{{ .Values.exporter.listen.port }}/metrics
+
+{{ if not (or .Values.podMonitor.enabled .Values.serviceMonitor.enabled) -}}
+Prometheus does not scrape the pods yet. Pick one of these options:
+
+1. Prometheus Operator. Install again with --set podMonitor.enabled=true. If
+   your Prometheus selects monitors by label, add the label as well, for
+   example --set podMonitor.labels.release=kube-prometheus-stack
+
+2. Annotation based discovery. Install again with these values:
+
+     podAnnotations:
+       prometheus.io/scrape: "true"
+       prometheus.io/port: "{{ .Values.exporter.listen.port }}"
+{{- end }}

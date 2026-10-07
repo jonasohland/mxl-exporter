@@ -1,0 +1,18 @@
+apiVersion: v2
+name: mxl-exporter
+description: Prometheus exporter for MXL (Media eXchange Layer) domains and flows
+type: application
+version: 0.1.1
+appVersion: 0.0.2
+keywords:
+  - prometheus
+  - exporter
+  - metrics
+  - mxl
+  - media
+home: https://github.com/jonasohland/mxl-exporter
+sources:
+  - https://github.com/jonasohland/mxl-exporter
+maintainers:
+  - name: Jonas Ohland
+    url: https://github.com/jonasohland

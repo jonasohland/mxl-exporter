@@ -1,0 +1,1777 @@
+{
+  "uid": "mxl-node-flow-overview",
+  "title": "MXL - Node flow overview",
+  "description": "State, timing and storage of the MXL flows on one node, from mxl-exporter.",
+  "tags": [
+    "mxl",
+    "mxl-exporter"
+  ],
+  "timezone": "browser",
+  "editable": true,
+  "graphTooltip": 1,
+  "refresh": "30s",
+  "time": {
+    "from": "now-3h",
+    "to": "now"
+  },
+  "schemaVersion": 41,
+  "templating": {
+    "list": [
+      {
+        "name": "datasource",
+        "label": "Data source",
+        "type": "datasource",
+        "query": "prometheus",
+        "current": {},
+        "refresh": 1,
+        "regex": "",
+        "hide": 0
+      },
+      {
+        "name": "node",
+        "label": "Node",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "query": {
+          "qryType": 1,
+          "query": "label_values(mxl_flow_present, node)",
+          "refId": "PrometheusVariableQueryEditor-VariableQuery"
+        },
+        "definition": "label_values(mxl_flow_present, node)",
+        "refresh": 2,
+        "sort": 1,
+        "multi": false,
+        "includeAll": false,
+        "current": {},
+        "options": [],
+        "regex": ""
+      },
+      {
+        "name": "domain",
+        "label": "Domain",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "query": {
+          "qryType": 1,
+          "query": "label_values(mxl_flow_present{node=\"$node\"}, domain)",
+          "refId": "PrometheusVariableQueryEditor-VariableQuery"
+        },
+        "definition": "label_values(mxl_flow_present{node=\"$node\"}, domain)",
+        "refresh": 2,
+        "sort": 1,
+        "multi": true,
+        "includeAll": true,
+        "current": {},
+        "options": [],
+        "regex": "",
+        "allValue": ".*"
+      },
+      {
+        "name": "data_type",
+        "label": "Data type",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "query": {
+          "qryType": 1,
+          "query": "label_values(mxl_flow_metadata{node=\"$node\", domain=~\"$domain\"}, flow_data_type)",
+          "refId": "PrometheusVariableQueryEditor-VariableQuery"
+        },
+        "definition": "label_values(mxl_flow_metadata{node=\"$node\", domain=~\"$domain\"}, flow_data_type)",
+        "refresh": 2,
+        "sort": 1,
+        "multi": true,
+        "includeAll": true,
+        "current": {},
+        "options": [],
+        "regex": "",
+        "allValue": ".*"
+      }
+    ]
+  },
+  "annotations": {
+    "list": []
+  },
+  "links": [],
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Flows",
+      "description": "Flows currently present in the selected domains.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "count(max by (flow_id, domain) (\n(mxl_flow_present{node=\"$node\", domain=~\"$domain\"} == 1)\n  * on(flow_id, node, domain) group_left(flow_label, flow_group_name, flow_group_type, flow_data_type, flow_media_type)\n  max by (flow_id, node, domain, flow_label, flow_group_name, flow_group_type, flow_data_type, flow_media_type) (mxl_flow_metadata{node=\"$node\", domain=~\"$domain\", flow_data_type=~\"$data_type\"})\n)) or vector(0)",
+          "refId": "A",
+          "legendFormat": "__auto",
+          "range": false,
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "value",
+        "orientation": "auto"
+      }
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Active",
+      "description": "Present flows whose head index advanced between the last two exporter collections.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 4,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "count(max by (flow_id, domain) (\n(mxl_flow_active{node=\"$node\", domain=~\"$domain\"} == 1)\n  * on(flow_id, node, domain) group_left(flow_label, flow_group_name, flow_group_type, flow_data_type, flow_media_type)\n  max by (flow_id, node, domain, flow_label, flow_group_name, flow_group_type, flow_data_type, flow_media_type) (mxl_flow_metadata{node=\"$node\", domain=~\"$domain\", flow_data_type=~\"$data_type\"})\n)) or vector(0)",
+          "refId": "A",
+          "legendFormat": "__auto",
+          "range": false,
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "value",
+        "orientation": "auto"
+      }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Stalled",
+      "description": "Present flows whose head index did not advance. The writer stopped or hangs.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "count(max by (flow_id, domain) (\n((mxl_flow_present{node=\"$node\", domain=~\"$domain\"} == 1) and on(flow_id, node, domain, pod) (mxl_flow_active{node=\"$node\", domain=~\"$domain\"} == 0))\n  * on(flow_id, node, domain) group_left(flow_label, flow_group_name, flow_group_type, flow_data_type, flow_media_type)\n  max by (flow_id, node, domain, flow_label, flow_group_name, flow_group_type, flow_data_type, flow_media_type) (mxl_flow_metadata{node=\"$node\", domain=~\"$domain\", flow_data_type=~\"$data_type\"})\n)) or vector(0)",
+          "refId": "A",
+          "legendFormat": "__auto",
+          "range": false,
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "value",
+        "orientation": "auto"
+      }
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Removed",
+      "description": "Flows that disappeared from the domain but are still tracked by the exporter (until --flow-lifetime expires, 24h by default).",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "count(max by (flow_id, domain) (\n(mxl_flow_present{node=\"$node\", domain=~\"$domain\"} == 0)\n  * on(flow_id, node, domain) group_left(flow_label, flow_group_name, flow_group_type, flow_data_type, flow_media_type)\n  max by (flow_id, node, domain, flow_label, flow_group_name, flow_group_type, flow_data_type, flow_media_type) (mxl_flow_metadata{node=\"$node\", domain=~\"$domain\", flow_data_type=~\"$data_type\"})\n)) or vector(0)",
+          "refId": "A",
+          "legendFormat": "__auto",
+          "range": false,
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "value",
+        "orientation": "auto"
+      }
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "Domains",
+      "description": "Domains the exporter tracks on this node.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "count(mxl_domain_num_flows{node=\"$node\", domain=~\"$domain\"}) or vector(0)",
+          "refId": "A",
+          "legendFormat": "__auto",
+          "range": false,
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "value",
+        "orientation": "auto"
+      }
+    },
+    {
+      "id": 6,
+      "type": "stat",
+      "title": "Worst latency",
+      "description": "Highest flow latency: how far the head index trails the current time, converted with the flow's grain rate.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 20,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "max(\n(mxl_flow_latency_grains{node=\"$node\", domain=~\"$domain\"} * mxl_flow_rate_den{node=\"$node\", domain=~\"$domain\"} / mxl_flow_rate_num{node=\"$node\", domain=~\"$domain\"} * 1000)\n  * on(flow_id, node, domain) group_left(flow_label, flow_group_name, flow_group_type, flow_data_type, flow_media_type)\n  max by (flow_id, node, domain, flow_label, flow_group_name, flow_group_type, flow_data_type, flow_media_type) (mxl_flow_metadata{node=\"$node\", domain=~\"$domain\", flow_data_type=~\"$data_type\"})\n)",
+          "refId": "A",
+          "legendFormat": "__auto",
+          "range": false,
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 1
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "value",
+        "orientation": "auto"
+      }
+    },
+    {
+      "id": 7,
+      "type": "table",
+      "title": "Flows",
+      "description": "One row per flow. Latency and buffer depth are converted from grains (samples for audio) with the flow rate. Last write/read are only reported for discrete (video/data) flows; continuous flows do not update these timestamps.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 4,
+        "w": 24,
+        "h": 12
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "max by (flow_id, domain, flow_label, flow_group_name, flow_group_type, flow_data_type, flow_media_type) (\n(mxl_flow_present{node=\"$node\", domain=~\"$domain\"} + mxl_flow_active{node=\"$node\", domain=~\"$domain\"})\n  * on(flow_id, node, domain) group_left(flow_label, flow_group_name, flow_group_type, flow_data_type, flow_media_type)\n  max by (flow_id, node, domain, flow_label, flow_group_name, flow_group_type, flow_data_type, flow_media_type) (mxl_flow_metadata{node=\"$node\", domain=~\"$domain\", flow_data_type=~\"$data_type\"})\n)",
+          "refId": "A",
+          "legendFormat": "__auto",
+          "range": false,
+          "instant": true,
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "max by (flow_id, domain, flow_label, flow_group_name, flow_group_type, flow_data_type, flow_media_type) (\n(mxl_flow_rate_num{node=\"$node\", domain=~\"$domain\"} / mxl_flow_rate_den{node=\"$node\", domain=~\"$domain\"})\n  * on(flow_id, node, domain) group_left(flow_label, flow_group_name, flow_group_type, flow_data_type, flow_media_type)\n  max by (flow_id, node, domain, flow_label, flow_group_name, flow_group_type, flow_data_type, flow_media_type) (mxl_flow_metadata{node=\"$node\", domain=~\"$domain\", flow_data_type=~\"$data_type\"})\n)",
+          "refId": "B",
+          "legendFormat": "__auto",
+          "range": false,
+          "instant": true,
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "max by (flow_id, domain, flow_label, flow_group_name, flow_group_type, flow_data_type, flow_media_type) (\n(mxl_flow_latency_grains{node=\"$node\", domain=~\"$domain\"} * mxl_flow_rate_den{node=\"$node\", domain=~\"$domain\"} / mxl_flow_rate_num{node=\"$node\", domain=~\"$domain\"} * 1000)\n  * on(flow_id, node, domain) group_left(flow_label, flow_group_name, flow_group_type, flow_data_type, flow_media_type)\n  max by (flow_id, node, domain, flow_label, flow_group_name, flow_group_type, flow_data_type, flow_media_type) (mxl_flow_metadata{node=\"$node\", domain=~\"$domain\", flow_data_type=~\"$data_type\"})\n)",
+          "refId": "C",
+          "legendFormat": "__auto",
+          "range": false,
+          "instant": true,
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "max by (flow_id, domain, flow_label, flow_group_name, flow_group_type, flow_data_type, flow_media_type) (\n((mxl_flow_ring_buffer_size_grains{node=\"$node\", domain=~\"$domain\"} or mxl_flow_ring_buffer_size_samples{node=\"$node\", domain=~\"$domain\"}) * mxl_flow_rate_den{node=\"$node\", domain=~\"$domain\"} / mxl_flow_rate_num{node=\"$node\", domain=~\"$domain\"} * 1000)\n  * on(flow_id, node, domain) group_left(flow_label, flow_group_name, flow_group_type, flow_data_type, flow_media_type)\n  max by (flow_id, node, domain, flow_label, flow_group_name, flow_group_type, flow_data_type, flow_media_type) (mxl_flow_metadata{node=\"$node\", domain=~\"$domain\", flow_data_type=~\"$data_type\"})\n)",
+          "refId": "D",
+          "legendFormat": "__auto",
+          "range": false,
+          "instant": true,
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "max by (flow_id, domain, flow_label, flow_group_name, flow_group_type, flow_data_type, flow_media_type) (\n(clamp_min(timestamp(mxl_flow_last_write_time_ns{node=\"$node\", domain=~\"$domain\"}) - (mxl_flow_last_write_time_ns{node=\"$node\", domain=~\"$domain\"} / 1e9 - 37), 0) and on(flow_id, node, domain, pod) mxl_flow_ring_buffer_size_grains{node=\"$node\", domain=~\"$domain\"})\n  * on(flow_id, node, domain) group_left(flow_label, flow_group_name, flow_group_type, flow_data_type, flow_media_type)\n  max by (flow_id, node, domain, flow_label, flow_group_name, flow_group_type, flow_data_type, flow_media_type) (mxl_flow_metadata{node=\"$node\", domain=~\"$domain\", flow_data_type=~\"$data_type\"})\n)",
+          "refId": "E",
+          "legendFormat": "__auto",
+          "range": false,
+          "instant": true,
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "max by (flow_id, domain, flow_label, flow_group_name, flow_group_type, flow_data_type, flow_media_type) (\n(clamp_min(timestamp(mxl_flow_last_read_time_ns{node=\"$node\", domain=~\"$domain\"}) - (mxl_flow_last_read_time_ns{node=\"$node\", domain=~\"$domain\"} / 1e9 - 37), 0) and on(flow_id, node, domain, pod) mxl_flow_ring_buffer_size_grains{node=\"$node\", domain=~\"$domain\"})\n  * on(flow_id, node, domain) group_left(flow_label, flow_group_name, flow_group_type, flow_data_type, flow_media_type)\n  max by (flow_id, node, domain, flow_label, flow_group_name, flow_group_type, flow_data_type, flow_media_type) (mxl_flow_metadata{node=\"$node\", domain=~\"$domain\", flow_data_type=~\"$data_type\"})\n)",
+          "refId": "F",
+          "legendFormat": "__auto",
+          "range": false,
+          "instant": true,
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "max by (flow_id, domain, flow_label, flow_group_name, flow_group_type, flow_data_type, flow_media_type) (\n(mxl_flow_channels_total{node=\"$node\", domain=~\"$domain\"})\n  * on(flow_id, node, domain) group_left(flow_label, flow_group_name, flow_group_type, flow_data_type, flow_media_type)\n  max by (flow_id, node, domain, flow_label, flow_group_name, flow_group_type, flow_data_type, flow_media_type) (mxl_flow_metadata{node=\"$node\", domain=~\"$domain\", flow_data_type=~\"$data_type\"})\n)",
+          "refId": "G",
+          "legendFormat": "__auto",
+          "range": false,
+          "instant": true,
+          "format": "table"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "flow_data_type": true
+            },
+            "indexByName": {
+              "flow_group_name": 0,
+              "flow_group_type": 1,
+              "Value #A": 2,
+              "flow_label": 3,
+              "flow_media_type": 4,
+              "Value #B": 5,
+              "Value #G": 6,
+              "Value #C": 7,
+              "Value #D": 8,
+              "Value #E": 9,
+              "Value #F": 10,
+              "domain": 11,
+              "flow_id": 12
+            },
+            "renameByName": {
+              "Value #A": "State",
+              "Value #B": "Rate",
+              "Value #C": "Latency",
+              "Value #D": "Buffer depth",
+              "Value #E": "Last write",
+              "Value #F": "Last read",
+              "Value #G": "Channels",
+              "flow_group_name": "Group",
+              "flow_group_type": "Type",
+              "flow_label": "Label",
+              "flow_media_type": "Media type",
+              "domain": "Domain",
+              "flow_id": "Flow ID"
+            }
+          }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "sort": [
+              {
+                "field": "Group",
+                "desc": false
+              }
+            ]
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "filterable": true
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "State"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "0": {
+                        "text": "Removed",
+                        "color": "orange",
+                        "index": 0
+                      },
+                      "1": {
+                        "text": "Stalled",
+                        "color": "red",
+                        "index": 1
+                      },
+                      "2": {
+                        "text": "Active",
+                        "color": "green",
+                        "index": 2
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              },
+              {
+                "id": "custom.width",
+                "value": 90
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Group"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 190
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Type"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 65
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Label"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 150
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Media type"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 115
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Rate"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "hertz"
+              },
+              {
+                "id": "custom.width",
+                "value": 80
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Channels"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 80
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Latency"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "ms"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              },
+              {
+                "id": "custom.width",
+                "value": 85
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Buffer depth"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "ms"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              },
+              {
+                "id": "custom.width",
+                "value": 110
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Last write"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "s"
+              },
+              {
+                "id": "decimals",
+                "value": 3
+              },
+              {
+                "id": "custom.width",
+                "value": 95
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "text",
+                      "value": null
+                    },
+                    {
+                      "color": "red",
+                      "value": 1
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Last read"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "s"
+              },
+              {
+                "id": "decimals",
+                "value": 3
+              },
+              {
+                "id": "custom.width",
+                "value": 95
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Domain"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 190
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        },
+        "sortBy": [
+          {
+            "displayName": "Group",
+            "desc": false
+          }
+        ]
+      }
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "Flows by state",
+      "description": "Active: head index advancing. Stalled: present but not advancing. Removed: gone from the domain but still tracked by the exporter. Per-flow state is in the collapsed rows at the bottom.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 16,
+        "w": 24,
+        "h": 7
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "count(max by (flow_id, domain) (\n(mxl_flow_present{node=\"$node\", domain=~\"$domain\"} + mxl_flow_active{node=\"$node\", domain=~\"$domain\"})\n  * on(flow_id, node, domain) group_left(flow_label, flow_group_name, flow_group_type, flow_data_type, flow_media_type)\n  max by (flow_id, node, domain, flow_label, flow_group_name, flow_group_type, flow_data_type, flow_media_type) (mxl_flow_metadata{node=\"$node\", domain=~\"$domain\", flow_data_type=~\"$data_type\"})\n) == 2) or vector(0)",
+          "refId": "A",
+          "legendFormat": "Active",
+          "range": true,
+          "instant": false
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "count(max by (flow_id, domain) (\n(mxl_flow_present{node=\"$node\", domain=~\"$domain\"} + mxl_flow_active{node=\"$node\", domain=~\"$domain\"})\n  * on(flow_id, node, domain) group_left(flow_label, flow_group_name, flow_group_type, flow_data_type, flow_media_type)\n  max by (flow_id, node, domain, flow_label, flow_group_name, flow_group_type, flow_data_type, flow_media_type) (mxl_flow_metadata{node=\"$node\", domain=~\"$domain\", flow_data_type=~\"$data_type\"})\n) == 1) or vector(0)",
+          "refId": "B",
+          "legendFormat": "Stalled",
+          "range": true,
+          "instant": false
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "count(max by (flow_id, domain) (\n(mxl_flow_present{node=\"$node\", domain=~\"$domain\"} + mxl_flow_active{node=\"$node\", domain=~\"$domain\"})\n  * on(flow_id, node, domain) group_left(flow_label, flow_group_name, flow_group_type, flow_data_type, flow_media_type)\n  max by (flow_id, node, domain, flow_label, flow_group_name, flow_group_type, flow_data_type, flow_media_type) (mxl_flow_metadata{node=\"$node\", domain=~\"$domain\", flow_data_type=~\"$data_type\"})\n) == 0) or vector(0)",
+          "refId": "C",
+          "legendFormat": "Removed",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 60,
+            "showPoints": "never",
+            "spanNulls": false,
+            "axisSoftMin": 0,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            }
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Active"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "green"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Stalled"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "red"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Removed"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "orange"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": [],
+          "sortDesc": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 9,
+      "type": "timeseries",
+      "title": "Latency by data type",
+      "description": "How far the head index trails the current time. Removed flows are left out. Per-flow series are in the collapsed row below.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 23,
+        "w": 8,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "max by (flow_data_type) (\n((mxl_flow_latency_grains{node=\"$node\", domain=~\"$domain\"} * mxl_flow_rate_den{node=\"$node\", domain=~\"$domain\"} / mxl_flow_rate_num{node=\"$node\", domain=~\"$domain\"} * 1000) and on(flow_id, node, domain, pod) (mxl_flow_present{node=\"$node\", domain=~\"$domain\"} == 1))\n  * on(flow_id, node, domain) group_left(flow_label, flow_group_name, flow_group_type, flow_data_type, flow_media_type)\n  max by (flow_id, node, domain, flow_label, flow_group_name, flow_group_type, flow_data_type, flow_media_type) (mxl_flow_metadata{node=\"$node\", domain=~\"$domain\", flow_data_type=~\"$data_type\"})\n)",
+          "refId": "A",
+          "legendFormat": "{{flow_data_type}} max",
+          "range": true,
+          "instant": false
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "quantile by (flow_data_type) (0.5,\n((mxl_flow_latency_grains{node=\"$node\", domain=~\"$domain\"} * mxl_flow_rate_den{node=\"$node\", domain=~\"$domain\"} / mxl_flow_rate_num{node=\"$node\", domain=~\"$domain\"} * 1000) and on(flow_id, node, domain, pod) (mxl_flow_present{node=\"$node\", domain=~\"$domain\"} == 1))\n  * on(flow_id, node, domain) group_left(flow_label, flow_group_name, flow_group_type, flow_data_type, flow_media_type)\n  max by (flow_id, node, domain, flow_label, flow_group_name, flow_group_type, flow_data_type, flow_media_type) (mxl_flow_metadata{node=\"$node\", domain=~\"$domain\", flow_data_type=~\"$data_type\"})\n)",
+          "refId": "B",
+          "legendFormat": "{{flow_data_type}} median",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 0,
+            "showPoints": "never",
+            "spanNulls": false,
+            "axisSoftMin": 0
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": ".*median"
+            },
+            "properties": [
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "fill": "dash",
+                  "dash": [
+                    10,
+                    10
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": [],
+          "sortDesc": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 10,
+      "type": "timeseries",
+      "title": "Grain rate vs nominal",
+      "description": "Head index advance rate divided by the declared grain rate. 100% means the writer keeps up with real time. Removed flows are left out. Short-window jitter of a few tenths of a percent is scrape timing.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 23,
+        "w": 8,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "min by (flow_data_type) (\n((rate(mxl_flow_head_index_grains{node=\"$node\", domain=~\"$domain\"}[$__rate_interval]) / (mxl_flow_rate_num{node=\"$node\", domain=~\"$domain\"} / mxl_flow_rate_den{node=\"$node\", domain=~\"$domain\"})) and on(flow_id, node, domain, pod) (mxl_flow_present{node=\"$node\", domain=~\"$domain\"} == 1))\n  * on(flow_id, node, domain) group_left(flow_label, flow_group_name, flow_group_type, flow_data_type, flow_media_type)\n  max by (flow_id, node, domain, flow_label, flow_group_name, flow_group_type, flow_data_type, flow_media_type) (mxl_flow_metadata{node=\"$node\", domain=~\"$domain\", flow_data_type=~\"$data_type\"})\n)",
+          "refId": "A",
+          "legendFormat": "{{flow_data_type}} min",
+          "range": true,
+          "instant": false
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "max by (flow_data_type) (\n((rate(mxl_flow_head_index_grains{node=\"$node\", domain=~\"$domain\"}[$__rate_interval]) / (mxl_flow_rate_num{node=\"$node\", domain=~\"$domain\"} / mxl_flow_rate_den{node=\"$node\", domain=~\"$domain\"})) and on(flow_id, node, domain, pod) (mxl_flow_present{node=\"$node\", domain=~\"$domain\"} == 1))\n  * on(flow_id, node, domain) group_left(flow_label, flow_group_name, flow_group_type, flow_data_type, flow_media_type)\n  max by (flow_id, node, domain, flow_label, flow_group_name, flow_group_type, flow_data_type, flow_media_type) (mxl_flow_metadata{node=\"$node\", domain=~\"$domain\", flow_data_type=~\"$data_type\"})\n)",
+          "refId": "B",
+          "legendFormat": "{{flow_data_type}} max",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 0,
+            "showPoints": "never",
+            "spanNulls": false,
+            "axisSoftMin": 0.95,
+            "axisSoftMax": 1.05
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": ".*min"
+            },
+            "properties": [
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "fill": "dash",
+                  "dash": [
+                    10,
+                    10
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": [],
+          "sortDesc": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 11,
+      "type": "timeseries",
+      "title": "Write age (discrete flows)",
+      "description": "Time between the exporter's collection and the flow's last write. A healthy writer stays around one grain period. Removed flows are left out. Continuous (audio) flows do not update the write timestamp.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 23,
+        "w": 8,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "max by (flow_data_type) (\n((clamp_min(timestamp(mxl_flow_last_write_time_ns{node=\"$node\", domain=~\"$domain\"}) - (mxl_flow_last_write_time_ns{node=\"$node\", domain=~\"$domain\"} / 1e9 - 37), 0) and on(flow_id, node, domain, pod) mxl_flow_ring_buffer_size_grains{node=\"$node\", domain=~\"$domain\"}) and on(flow_id, node, domain, pod) (mxl_flow_present{node=\"$node\", domain=~\"$domain\"} == 1))\n  * on(flow_id, node, domain) group_left(flow_label, flow_group_name, flow_group_type, flow_data_type, flow_media_type)\n  max by (flow_id, node, domain, flow_label, flow_group_name, flow_group_type, flow_data_type, flow_media_type) (mxl_flow_metadata{node=\"$node\", domain=~\"$domain\", flow_data_type=~\"$data_type\"})\n)",
+          "refId": "A",
+          "legendFormat": "{{flow_data_type}} max",
+          "range": true,
+          "instant": false
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "quantile by (flow_data_type) (0.5,\n((clamp_min(timestamp(mxl_flow_last_write_time_ns{node=\"$node\", domain=~\"$domain\"}) - (mxl_flow_last_write_time_ns{node=\"$node\", domain=~\"$domain\"} / 1e9 - 37), 0) and on(flow_id, node, domain, pod) mxl_flow_ring_buffer_size_grains{node=\"$node\", domain=~\"$domain\"}) and on(flow_id, node, domain, pod) (mxl_flow_present{node=\"$node\", domain=~\"$domain\"} == 1))\n  * on(flow_id, node, domain) group_left(flow_label, flow_group_name, flow_group_type, flow_data_type, flow_media_type)\n  max by (flow_id, node, domain, flow_label, flow_group_name, flow_group_type, flow_data_type, flow_media_type) (mxl_flow_metadata{node=\"$node\", domain=~\"$domain\", flow_data_type=~\"$data_type\"})\n)",
+          "refId": "B",
+          "legendFormat": "{{flow_data_type}} median",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 0,
+            "showPoints": "never",
+            "spanNulls": false,
+            "axisSoftMin": 0
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": ".*median"
+            },
+            "properties": [
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "fill": "dash",
+                  "dash": [
+                    10,
+                    10
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": [],
+          "sortDesc": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 12,
+      "type": "table",
+      "title": "Domains",
+      "description": "Data size sums the files of all flow directories in the domain. Filesystem usage covers the whole filesystem, which several domains can share.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 31,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "max by (domain, fs_path) (\n(mxl_domain_num_flows{node=\"$node\", domain=~\"$domain\"}) + on(domain, node) group_left(fs_path) max by (domain, node, fs_path) (0 * mxl_domain_fs_space_total_bytes{node=\"$node\", domain=~\"$domain\"})\n)",
+          "refId": "A",
+          "legendFormat": "__auto",
+          "range": false,
+          "instant": true,
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "max by (domain, fs_path) (\n(mxl_domain_size_bytes{node=\"$node\", domain=~\"$domain\"}) + on(domain, node) group_left(fs_path) max by (domain, node, fs_path) (0 * mxl_domain_fs_space_total_bytes{node=\"$node\", domain=~\"$domain\"})\n)",
+          "refId": "B",
+          "legendFormat": "__auto",
+          "range": false,
+          "instant": true,
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "max by (domain, fs_path) (mxl_domain_fs_space_used_bytes{node=\"$node\", domain=~\"$domain\"} / mxl_domain_fs_space_total_bytes{node=\"$node\", domain=~\"$domain\"})",
+          "refId": "C",
+          "legendFormat": "__auto",
+          "range": false,
+          "instant": true,
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "max by (domain, fs_path) (mxl_domain_fs_space_available_bytes{node=\"$node\", domain=~\"$domain\"})",
+          "refId": "D",
+          "legendFormat": "__auto",
+          "range": false,
+          "instant": true,
+          "format": "table"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "indexByName": {
+              "domain": 0,
+              "Value #A": 1,
+              "Value #B": 2,
+              "fs_path": 3,
+              "Value #C": 4,
+              "Value #D": 5
+            },
+            "renameByName": {
+              "domain": "Domain",
+              "fs_path": "Filesystem",
+              "Value #A": "Flows",
+              "Value #B": "Data size",
+              "Value #C": "FS used",
+              "Value #D": "FS available"
+            }
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            }
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Domain"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 220
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Data size"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "bytes"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "FS available"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "bytes"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "FS used"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percentunit"
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 1
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "orange",
+                      "value": 0.8
+                    },
+                    {
+                      "color": "red",
+                      "value": 0.9
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "gauge",
+                  "mode": "basic",
+                  "valueDisplayMode": "text"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      }
+    },
+    {
+      "id": 13,
+      "type": "timeseries",
+      "title": "Domain data size",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 31,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "max by (domain) (mxl_domain_size_bytes{node=\"$node\", domain=~\"$domain\"})",
+          "refId": "A",
+          "legendFormat": "{{domain}}",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 0,
+            "showPoints": "never",
+            "spanNulls": false,
+            "axisSoftMin": 0
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": [],
+          "sortDesc": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 16,
+      "type": "row",
+      "title": "Per-flow detail: $data_type",
+      "collapsed": true,
+      "repeat": "data_type",
+      "gridPos": {
+        "x": 0,
+        "y": 39,
+        "w": 24,
+        "h": 1
+      },
+      "panels": [
+        {
+          "id": 14,
+          "type": "state-timeline",
+          "title": "Flow state: $data_type",
+          "description": "Active: head index advancing. Stalled: present but not advancing. Removed: gone from the domain.",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "gridPos": {
+            "x": 0,
+            "y": 40,
+            "w": 24,
+            "h": 16
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "editorMode": "code",
+              "expr": "max by (flow_id, domain, flow_group_name, flow_group_type) (\n(mxl_flow_present{node=\"$node\", domain=~\"$domain\"} + mxl_flow_active{node=\"$node\", domain=~\"$domain\"})\n  * on(flow_id, node, domain) group_left(flow_label, flow_group_name, flow_group_type, flow_data_type, flow_media_type)\n  max by (flow_id, node, domain, flow_label, flow_group_name, flow_group_type, flow_data_type, flow_media_type) (mxl_flow_metadata{node=\"$node\", domain=~\"$domain\", flow_data_type=\"$data_type\"})\n)",
+              "refId": "A",
+              "legendFormat": "{{flow_group_name}} \u00b7 {{flow_group_type}}",
+              "range": true,
+              "instant": false
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "mappings": [
+                {
+                  "type": "value",
+                  "options": {
+                    "0": {
+                      "text": "Removed",
+                      "color": "orange",
+                      "index": 0
+                    },
+                    "1": {
+                      "text": "Stalled",
+                      "color": "red",
+                      "index": 1
+                    },
+                    "2": {
+                      "text": "Active",
+                      "color": "green",
+                      "index": 2
+                    }
+                  }
+                }
+              ],
+              "color": {
+                "mode": "thresholds"
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "orange",
+                    "value": null
+                  },
+                  {
+                    "color": "red",
+                    "value": 1
+                  },
+                  {
+                    "color": "green",
+                    "value": 2
+                  }
+                ]
+              },
+              "custom": {
+                "fillOpacity": 80,
+                "lineWidth": 0
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "showValue": "never",
+            "mergeValues": true,
+            "rowHeight": 0.8,
+            "alignValue": "left",
+            "legend": {
+              "showLegend": false
+            },
+            "tooltip": {
+              "mode": "single",
+              "sort": "none"
+            }
+          }
+        },
+        {
+          "id": 15,
+          "type": "timeseries",
+          "title": "Latency per flow: $data_type",
+          "description": "",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "gridPos": {
+            "x": 0,
+            "y": 56,
+            "w": 24,
+            "h": 10
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "editorMode": "code",
+              "expr": "max by (flow_id, domain, flow_group_name, flow_group_type) (\n((mxl_flow_latency_grains{node=\"$node\", domain=~\"$domain\"} * mxl_flow_rate_den{node=\"$node\", domain=~\"$domain\"} / mxl_flow_rate_num{node=\"$node\", domain=~\"$domain\"} * 1000) and on(flow_id, node, domain, pod) (mxl_flow_present{node=\"$node\", domain=~\"$domain\"} == 1))\n  * on(flow_id, node, domain) group_left(flow_label, flow_group_name, flow_group_type, flow_data_type, flow_media_type)\n  max by (flow_id, node, domain, flow_label, flow_group_name, flow_group_type, flow_data_type, flow_media_type) (mxl_flow_metadata{node=\"$node\", domain=~\"$domain\", flow_data_type=\"$data_type\"})\n)",
+              "refId": "A",
+              "legendFormat": "{{flow_group_name}} \u00b7 {{flow_group_type}}",
+              "range": true,
+              "instant": false
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "ms",
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "drawStyle": "line",
+                "lineWidth": 2,
+                "fillOpacity": 0,
+                "showPoints": "never",
+                "spanNulls": false,
+                "axisSoftMin": 0
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "table",
+              "placement": "right",
+              "showLegend": true,
+              "calcs": [
+                "mean",
+                "max"
+              ],
+              "sortBy": "Max",
+              "sortDesc": true
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,1653 @@
+{
+  "uid": "mxl-flow-replication",
+  "title": "MXL - Flow replication",
+  "description": "Replication sessions of one MXL flow: throughput, loss, media age and worker health, from the replicator.",
+  "tags": [
+    "mxl",
+    "mxl-replicator"
+  ],
+  "timezone": "browser",
+  "editable": true,
+  "graphTooltip": 1,
+  "refresh": "30s",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "schemaVersion": 41,
+  "templating": {
+    "list": [
+      {
+        "name": "datasource",
+        "label": "Data source",
+        "type": "datasource",
+        "query": "prometheus",
+        "current": {},
+        "refresh": 1,
+        "regex": "",
+        "hide": 0
+      },
+      {
+        "name": "data_type",
+        "label": "Data type",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "query": {
+          "qryType": 1,
+          "query": "label_values(mxl_flow_metadata, flow_data_type)",
+          "refId": "PrometheusVariableQueryEditor-VariableQuery"
+        },
+        "definition": "label_values(mxl_flow_metadata, flow_data_type)",
+        "refresh": 2,
+        "sort": 1,
+        "multi": true,
+        "includeAll": true,
+        "current": {},
+        "options": [],
+        "regex": "",
+        "allValue": ".*"
+      },
+      {
+        "name": "flow",
+        "label": "Flow",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "query": {
+          "qryType": 3,
+          "query": "query_result(max by (flow_id, name) (label_join(mxl_flow_metadata{flow_data_type=~\"$data_type\"}, \"name\", \" \u00b7 \", \"flow_group_name\", \"flow_data_type\")) and on(flow_id) group by (flow_id) (mxl_grains_total))",
+          "refId": "PrometheusVariableQueryEditor-VariableQuery"
+        },
+        "definition": "query_result(max by (flow_id, name) (label_join(mxl_flow_metadata{flow_data_type=~\"$data_type\"}, \"name\", \" \u00b7 \", \"flow_group_name\", \"flow_data_type\")) and on(flow_id) group by (flow_id) (mxl_grains_total))",
+        "refresh": 2,
+        "sort": 7,
+        "multi": false,
+        "includeAll": false,
+        "current": {},
+        "options": [],
+        "regex": "/flow_id=\"(?<value>[^\"]+)\".*name=\"(?<text>[^\"]+)\"/"
+      }
+    ]
+  },
+  "annotations": {
+    "list": []
+  },
+  "links": [
+    {
+      "title": "Flow",
+      "type": "link",
+      "url": "/d/mxl-flow",
+      "keepTime": true,
+      "includeVars": true,
+      "icon": "dashboard"
+    },
+    {
+      "title": "Replication",
+      "type": "link",
+      "url": "/d/mxl-replication",
+      "keepTime": true,
+      "includeVars": false,
+      "icon": "dashboard"
+    }
+  ],
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Sessions",
+      "description": "Replication sessions carrying this flow. Each session copies the flow from one node to another.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "count(group by (session) (mxl_grains_total{flow_id=\"$flow\"})) or vector(0)",
+          "refId": "A",
+          "legendFormat": "__auto",
+          "range": false,
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "value",
+        "orientation": "auto",
+        "showPercentChange": false,
+        "wideLayout": true
+      }
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Throughput",
+      "description": "Received by all targets over 5 minutes. Video uses the on-wire estimate (grain plus a 4 KiB header), audio is samples \u00d7 channels \u00d7 4 B.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 4,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "sum(rate(mxl_payload_octets_total{flow_id=\"$flow\", direction=\"target\", format=\"video\"}[5m])\n   or rate(mxl_octets_total{flow_id=\"$flow\", direction=\"target\", format=\"audio\"}[5m])\n      * on(flow_id, node) group_left() max by (flow_id, node) (mxl_flow_channels_total) * 4) * 8",
+          "refId": "A",
+          "legendFormat": "__auto",
+          "range": false,
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bps",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 1
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "value",
+        "orientation": "auto",
+        "showPercentChange": false,
+        "wideLayout": true
+      }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Worst loss",
+      "description": "Highest share of media a target did not receive over 5 minutes. Audio counts samples, video counts grains.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "max(rate(mxl_grains_lost{flow_id=\"$flow\", direction=\"target\"}[5m]) / (rate(mxl_grains_lost{flow_id=\"$flow\", direction=\"target\"}[5m]) + (rate(mxl_octets_total{flow_id=\"$flow\", direction=\"target\", format=\"audio\"}[5m]) or rate(mxl_grains_total{flow_id=\"$flow\", direction=\"target\", format=\"video\"}[5m]))))",
+          "refId": "A",
+          "legendFormat": "__auto",
+          "range": false,
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#0ca30c",
+                "value": null
+              },
+              {
+                "color": "#fab219",
+                "value": 0.001
+              },
+              {
+                "color": "#d03b3b",
+                "value": 0.02
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 2
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "value",
+        "orientation": "auto",
+        "showPercentChange": false,
+        "wideLayout": true
+      }
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Worst arrival age p99",
+      "description": "Age of the media when it reaches the target, p99 of the worst session.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "max((mxl_source_latency_ns{flow_id=\"$flow\", direction=\"target\", quantile=\"0.99\"} >= 0) / 1e6)",
+          "refId": "A",
+          "legendFormat": "__auto",
+          "range": false,
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 1
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "value",
+        "orientation": "auto",
+        "showPercentChange": false,
+        "wideLayout": true
+      }
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "Worst network p99",
+      "description": "Receive time minus the transmit timestamp the initiator writes into the grain.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "max((mxl_network_latency_ns{flow_id=\"$flow\", direction=\"target\", quantile=\"0.99\"} >= 0) / 1e6 > 0)",
+          "refId": "A",
+          "legendFormat": "__auto",
+          "range": false,
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 2,
+          "noValue": "Video only"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "value",
+        "orientation": "auto",
+        "showPercentChange": false,
+        "wideLayout": true
+      }
+    },
+    {
+      "id": 6,
+      "type": "stat",
+      "title": "Worker restarts (1h)",
+      "description": "Initiator and target worker restarts for this flow in the last hour.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 20,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "sum(increase(mxl_worker_restarts{flow_id=\"$flow\"}[1h])) or vector(0)",
+          "refId": "A",
+          "legendFormat": "__auto",
+          "range": false,
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#0ca30c",
+                "value": null
+              },
+              {
+                "color": "#fab219",
+                "value": 1
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "value",
+        "orientation": "auto",
+        "showPercentChange": false,
+        "wideLayout": true
+      }
+    },
+    {
+      "id": 7,
+      "type": "table",
+      "title": "Sessions",
+      "description": "One row per session, over the last 5 minutes. Sent and Received are grains per second, sample batches for audio. The initiator does not count audio yet, so Sent and Age at source stay empty for audio flows. Ages and network latency are p50. Source written: the source flow's head advances. Replica written / read: the target writes the replica, and something reads it. Restarts counts both workers since their agents started. Domains of both ends are on the Flow dashboard.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 4,
+        "w": 24,
+        "h": 5
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "max by (session, src, dst, src_domain, dst_domain) (\n  (rate(mxl_grains_total{flow_id=\"$flow\", direction=\"initiator\"}[5m]) and mxl_grains_total{flow_id=\"$flow\", direction=\"initiator\"} > 0)\n  * on(session) group_left(src, src_domain) group by (session, src, src_domain) (label_replace(label_replace(mxl_grains_total{flow_id=\"$flow\", direction=\"initiator\"}, \"src\", \"$1\", \"node\", \"(.*)\"), \"src_domain\", \"$1\", \"domain\", \"shm/(.*)\"))\n  * on(session) group_left(dst, dst_domain) group by (session, dst, dst_domain) (label_replace(label_replace(mxl_grains_total{flow_id=\"$flow\", direction=\"target\"}, \"dst\", \"$1\", \"node\", \"(.*)\"), \"dst_domain\", \"$1\", \"domain\", \"shm/(.*)\")))",
+          "refId": "A",
+          "legendFormat": "__auto",
+          "range": false,
+          "instant": true,
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "max by (session, src, dst, src_domain, dst_domain) (\n  (rate(mxl_grains_total{flow_id=\"$flow\", direction=\"target\"}[5m]))\n  * on(session) group_left(src, src_domain) group by (session, src, src_domain) (label_replace(label_replace(mxl_grains_total{flow_id=\"$flow\", direction=\"initiator\"}, \"src\", \"$1\", \"node\", \"(.*)\"), \"src_domain\", \"$1\", \"domain\", \"shm/(.*)\"))\n  * on(session) group_left(dst, dst_domain) group by (session, dst, dst_domain) (label_replace(label_replace(mxl_grains_total{flow_id=\"$flow\", direction=\"target\"}, \"dst\", \"$1\", \"node\", \"(.*)\"), \"dst_domain\", \"$1\", \"domain\", \"shm/(.*)\")))",
+          "refId": "B",
+          "legendFormat": "__auto",
+          "range": false,
+          "instant": true,
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "max by (session, src, dst, src_domain, dst_domain) (\n  (rate(mxl_payload_octets_total{flow_id=\"$flow\", direction=\"target\", format=\"video\"}[5m])\n   or rate(mxl_octets_total{flow_id=\"$flow\", direction=\"target\", format=\"audio\"}[5m])\n      * on(flow_id, node) group_left() max by (flow_id, node) (mxl_flow_channels_total) * 4)\n  * on(session) group_left(src, src_domain) group by (session, src, src_domain) (label_replace(label_replace(mxl_grains_total{flow_id=\"$flow\", direction=\"initiator\"}, \"src\", \"$1\", \"node\", \"(.*)\"), \"src_domain\", \"$1\", \"domain\", \"shm/(.*)\"))\n  * on(session) group_left(dst, dst_domain) group by (session, dst, dst_domain) (label_replace(label_replace(mxl_grains_total{flow_id=\"$flow\", direction=\"target\"}, \"dst\", \"$1\", \"node\", \"(.*)\"), \"dst_domain\", \"$1\", \"domain\", \"shm/(.*)\"))) * 8",
+          "refId": "C",
+          "legendFormat": "__auto",
+          "range": false,
+          "instant": true,
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "max by (session, src, dst, src_domain, dst_domain) (\n  (rate(mxl_grains_lost{flow_id=\"$flow\", direction=\"target\"}[5m]) / (rate(mxl_grains_lost{flow_id=\"$flow\", direction=\"target\"}[5m]) + (rate(mxl_octets_total{flow_id=\"$flow\", direction=\"target\", format=\"audio\"}[5m]) or rate(mxl_grains_total{flow_id=\"$flow\", direction=\"target\", format=\"video\"}[5m]))))\n  * on(session) group_left(src, src_domain) group by (session, src, src_domain) (label_replace(label_replace(mxl_grains_total{flow_id=\"$flow\", direction=\"initiator\"}, \"src\", \"$1\", \"node\", \"(.*)\"), \"src_domain\", \"$1\", \"domain\", \"shm/(.*)\"))\n  * on(session) group_left(dst, dst_domain) group by (session, dst, dst_domain) (label_replace(label_replace(mxl_grains_total{flow_id=\"$flow\", direction=\"target\"}, \"dst\", \"$1\", \"node\", \"(.*)\"), \"dst_domain\", \"$1\", \"domain\", \"shm/(.*)\")))",
+          "refId": "D",
+          "legendFormat": "__auto",
+          "range": false,
+          "instant": true,
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "max by (session, src, dst, src_domain, dst_domain) (\n  ((mxl_source_latency_ns{flow_id=\"$flow\", direction=\"initiator\", quantile=\"0.5\"} >= 0) / 1e6)\n  * on(session) group_left(src, src_domain) group by (session, src, src_domain) (label_replace(label_replace(mxl_grains_total{flow_id=\"$flow\", direction=\"initiator\"}, \"src\", \"$1\", \"node\", \"(.*)\"), \"src_domain\", \"$1\", \"domain\", \"shm/(.*)\"))\n  * on(session) group_left(dst, dst_domain) group by (session, dst, dst_domain) (label_replace(label_replace(mxl_grains_total{flow_id=\"$flow\", direction=\"target\"}, \"dst\", \"$1\", \"node\", \"(.*)\"), \"dst_domain\", \"$1\", \"domain\", \"shm/(.*)\")))",
+          "refId": "E",
+          "legendFormat": "__auto",
+          "range": false,
+          "instant": true,
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "max by (session, src, dst, src_domain, dst_domain) (\n  ((mxl_source_latency_ns{flow_id=\"$flow\", direction=\"target\", quantile=\"0.5\"} >= 0) / 1e6)\n  * on(session) group_left(src, src_domain) group by (session, src, src_domain) (label_replace(label_replace(mxl_grains_total{flow_id=\"$flow\", direction=\"initiator\"}, \"src\", \"$1\", \"node\", \"(.*)\"), \"src_domain\", \"$1\", \"domain\", \"shm/(.*)\"))\n  * on(session) group_left(dst, dst_domain) group by (session, dst, dst_domain) (label_replace(label_replace(mxl_grains_total{flow_id=\"$flow\", direction=\"target\"}, \"dst\", \"$1\", \"node\", \"(.*)\"), \"dst_domain\", \"$1\", \"domain\", \"shm/(.*)\")))",
+          "refId": "F",
+          "legendFormat": "__auto",
+          "range": false,
+          "instant": true,
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "max by (session, src, dst, src_domain, dst_domain) (\n  ((mxl_network_latency_ns{flow_id=\"$flow\", direction=\"target\", quantile=\"0.5\"} >= 0) / 1e6 > 0)\n  * on(session) group_left(src, src_domain) group by (session, src, src_domain) (label_replace(label_replace(mxl_grains_total{flow_id=\"$flow\", direction=\"initiator\"}, \"src\", \"$1\", \"node\", \"(.*)\"), \"src_domain\", \"$1\", \"domain\", \"shm/(.*)\"))\n  * on(session) group_left(dst, dst_domain) group by (session, dst, dst_domain) (label_replace(label_replace(mxl_grains_total{flow_id=\"$flow\", direction=\"target\"}, \"dst\", \"$1\", \"node\", \"(.*)\"), \"dst_domain\", \"$1\", \"domain\", \"shm/(.*)\")))",
+          "refId": "G",
+          "legendFormat": "__auto",
+          "range": false,
+          "instant": true,
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "max by (session, src, dst, src_domain, dst_domain) (\n  (mxl_writer_active{flow_id=\"$flow\", direction=\"initiator\"})\n  * on(session) group_left(src, src_domain) group by (session, src, src_domain) (label_replace(label_replace(mxl_grains_total{flow_id=\"$flow\", direction=\"initiator\"}, \"src\", \"$1\", \"node\", \"(.*)\"), \"src_domain\", \"$1\", \"domain\", \"shm/(.*)\"))\n  * on(session) group_left(dst, dst_domain) group by (session, dst, dst_domain) (label_replace(label_replace(mxl_grains_total{flow_id=\"$flow\", direction=\"target\"}, \"dst\", \"$1\", \"node\", \"(.*)\"), \"dst_domain\", \"$1\", \"domain\", \"shm/(.*)\")))",
+          "refId": "H",
+          "legendFormat": "__auto",
+          "range": false,
+          "instant": true,
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "max by (session, src, dst, src_domain, dst_domain) (\n  (mxl_writer_active{flow_id=\"$flow\", direction=\"target\"})\n  * on(session) group_left(src, src_domain) group by (session, src, src_domain) (label_replace(label_replace(mxl_grains_total{flow_id=\"$flow\", direction=\"initiator\"}, \"src\", \"$1\", \"node\", \"(.*)\"), \"src_domain\", \"$1\", \"domain\", \"shm/(.*)\"))\n  * on(session) group_left(dst, dst_domain) group by (session, dst, dst_domain) (label_replace(label_replace(mxl_grains_total{flow_id=\"$flow\", direction=\"target\"}, \"dst\", \"$1\", \"node\", \"(.*)\"), \"dst_domain\", \"$1\", \"domain\", \"shm/(.*)\")))",
+          "refId": "I",
+          "legendFormat": "__auto",
+          "range": false,
+          "instant": true,
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "max by (session, src, dst, src_domain, dst_domain) (\n  (mxl_reader_active{flow_id=\"$flow\", direction=\"target\"})\n  * on(session) group_left(src, src_domain) group by (session, src, src_domain) (label_replace(label_replace(mxl_grains_total{flow_id=\"$flow\", direction=\"initiator\"}, \"src\", \"$1\", \"node\", \"(.*)\"), \"src_domain\", \"$1\", \"domain\", \"shm/(.*)\"))\n  * on(session) group_left(dst, dst_domain) group by (session, dst, dst_domain) (label_replace(label_replace(mxl_grains_total{flow_id=\"$flow\", direction=\"target\"}, \"dst\", \"$1\", \"node\", \"(.*)\"), \"dst_domain\", \"$1\", \"domain\", \"shm/(.*)\")))",
+          "refId": "J",
+          "legendFormat": "__auto",
+          "range": false,
+          "instant": true,
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "max by (session, src, dst, src_domain, dst_domain) (\n  (sum by (session) (mxl_worker_restarts{flow_id=\"$flow\"}))\n  * on(session) group_left(src, src_domain) group by (session, src, src_domain) (label_replace(label_replace(mxl_grains_total{flow_id=\"$flow\", direction=\"initiator\"}, \"src\", \"$1\", \"node\", \"(.*)\"), \"src_domain\", \"$1\", \"domain\", \"shm/(.*)\"))\n  * on(session) group_left(dst, dst_domain) group by (session, dst, dst_domain) (label_replace(label_replace(mxl_grains_total{flow_id=\"$flow\", direction=\"target\"}, \"dst\", \"$1\", \"node\", \"(.*)\"), \"dst_domain\", \"$1\", \"domain\", \"shm/(.*)\")))",
+          "refId": "K",
+          "legendFormat": "__auto",
+          "range": false,
+          "instant": true,
+          "format": "table"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "src_domain": true,
+              "dst_domain": true,
+              "session": true
+            },
+            "indexByName": {
+              "src": 0,
+              "dst": 1,
+              "Value #A": 2,
+              "Value #B": 3,
+              "Value #C": 4,
+              "Value #D": 5,
+              "Value #E": 6,
+              "Value #F": 7,
+              "Value #G": 8,
+              "Value #H": 9,
+              "Value #I": 10,
+              "Value #J": 11,
+              "Value #K": 12
+            },
+            "renameByName": {
+              "src": "Source",
+              "dst": "Target",
+              "Value #A": "Sent",
+              "Value #B": "Received",
+              "Value #C": "Throughput",
+              "Value #D": "Loss",
+              "Value #E": "Age at source",
+              "Value #F": "Age on arrival",
+              "Value #G": "Network",
+              "Value #H": "Source written",
+              "Value #I": "Replica written",
+              "Value #J": "Replica read",
+              "Value #K": "Restarts"
+            }
+          }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "sort": [
+              {
+                "field": "Target",
+                "desc": false
+              }
+            ]
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "minWidth": 80
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Sent"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "short"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              },
+              {
+                "id": "custom.width",
+                "value": 80
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Received"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "short"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              },
+              {
+                "id": "custom.width",
+                "value": 90
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Throughput"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "bps"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Loss"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percentunit"
+              },
+              {
+                "id": "decimals",
+                "value": 2
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "text",
+                      "value": null
+                    },
+                    {
+                      "color": "#fab219",
+                      "value": 0.001
+                    },
+                    {
+                      "color": "#d03b3b",
+                      "value": 0.02
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Age at source"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "ms"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Age on arrival"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "ms"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Network"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "ms"
+              },
+              {
+                "id": "decimals",
+                "value": 2
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Source written"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "0": {
+                        "text": "Idle",
+                        "color": "text",
+                        "index": 0
+                      },
+                      "1": {
+                        "text": "Active",
+                        "color": "green",
+                        "index": 1
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Replica written"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "0": {
+                        "text": "Idle",
+                        "color": "text",
+                        "index": 0
+                      },
+                      "1": {
+                        "text": "Active",
+                        "color": "green",
+                        "index": 1
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Replica read"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "0": {
+                        "text": "Idle",
+                        "color": "text",
+                        "index": 0
+                      },
+                      "1": {
+                        "text": "Active",
+                        "color": "green",
+                        "index": 1
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      }
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "Grains per second",
+      "description": "Grains read from the source by the initiator, and written to the replica by the target. Audio counts sample batches; the initiator does not count audio yet.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 9,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "max by (session, src, dst, src_domain, dst_domain) (\n  (rate(mxl_grains_total{flow_id=\"$flow\", direction=\"initiator\"}[$__rate_interval]) and mxl_grains_total{flow_id=\"$flow\", direction=\"initiator\"} > 0)\n  * on(session) group_left(src, src_domain) group by (session, src, src_domain) (label_replace(label_replace(mxl_grains_total{flow_id=\"$flow\", direction=\"initiator\"}, \"src\", \"$1\", \"node\", \"(.*)\"), \"src_domain\", \"$1\", \"domain\", \"shm/(.*)\"))\n  * on(session) group_left(dst, dst_domain) group by (session, dst, dst_domain) (label_replace(label_replace(mxl_grains_total{flow_id=\"$flow\", direction=\"target\"}, \"dst\", \"$1\", \"node\", \"(.*)\"), \"dst_domain\", \"$1\", \"domain\", \"shm/(.*)\")))",
+          "refId": "A",
+          "legendFormat": "{{src}} \u2192 {{dst}} sent",
+          "range": true,
+          "instant": false
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "max by (session, src, dst, src_domain, dst_domain) (\n  (rate(mxl_grains_total{flow_id=\"$flow\", direction=\"target\"}[$__rate_interval]))\n  * on(session) group_left(src, src_domain) group by (session, src, src_domain) (label_replace(label_replace(mxl_grains_total{flow_id=\"$flow\", direction=\"initiator\"}, \"src\", \"$1\", \"node\", \"(.*)\"), \"src_domain\", \"$1\", \"domain\", \"shm/(.*)\"))\n  * on(session) group_left(dst, dst_domain) group by (session, dst, dst_domain) (label_replace(label_replace(mxl_grains_total{flow_id=\"$flow\", direction=\"target\"}, \"dst\", \"$1\", \"node\", \"(.*)\"), \"dst_domain\", \"$1\", \"domain\", \"shm/(.*)\")))",
+          "refId": "B",
+          "legendFormat": "{{src}} \u2192 {{dst}} received",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 0,
+            "showPoints": "never",
+            "spanNulls": false,
+            "axisSoftMin": 0
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": ".* received"
+            },
+            "properties": [
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "fill": "dash",
+                  "dash": [
+                    10,
+                    10
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": []
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 9,
+      "type": "timeseries",
+      "title": "Throughput",
+      "description": "Received by the target. Video uses the on-wire estimate (grain plus a 4 KiB header), audio is samples \u00d7 channels \u00d7 4 B.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 9,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "max by (session, src, dst, src_domain, dst_domain) (\n  (rate(mxl_payload_octets_total{flow_id=\"$flow\", direction=\"target\", format=\"video\"}[$__rate_interval])\n   or rate(mxl_octets_total{flow_id=\"$flow\", direction=\"target\", format=\"audio\"}[$__rate_interval])\n      * on(flow_id, node) group_left() max by (flow_id, node) (mxl_flow_channels_total) * 4)\n  * on(session) group_left(src, src_domain) group by (session, src, src_domain) (label_replace(label_replace(mxl_grains_total{flow_id=\"$flow\", direction=\"initiator\"}, \"src\", \"$1\", \"node\", \"(.*)\"), \"src_domain\", \"$1\", \"domain\", \"shm/(.*)\"))\n  * on(session) group_left(dst, dst_domain) group by (session, dst, dst_domain) (label_replace(label_replace(mxl_grains_total{flow_id=\"$flow\", direction=\"target\"}, \"dst\", \"$1\", \"node\", \"(.*)\"), \"dst_domain\", \"$1\", \"domain\", \"shm/(.*)\"))) * 8",
+          "refId": "A",
+          "legendFormat": "{{src}} \u2192 {{dst}}",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bps",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 0,
+            "showPoints": "never",
+            "spanNulls": false,
+            "axisSoftMin": 0
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": []
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 10,
+      "type": "timeseries",
+      "title": "Loss",
+      "description": "Share of media the target did not receive: an index gap between consecutive grains or sample batches. Audio counts samples, video counts grains.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 17,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "max by (session, src, dst, src_domain, dst_domain) (\n  (rate(mxl_grains_lost{flow_id=\"$flow\", direction=\"target\"}[$__rate_interval]) / (rate(mxl_grains_lost{flow_id=\"$flow\", direction=\"target\"}[$__rate_interval]) + (rate(mxl_octets_total{flow_id=\"$flow\", direction=\"target\", format=\"audio\"}[$__rate_interval]) or rate(mxl_grains_total{flow_id=\"$flow\", direction=\"target\", format=\"video\"}[$__rate_interval]))))\n  * on(session) group_left(src, src_domain) group by (session, src, src_domain) (label_replace(label_replace(mxl_grains_total{flow_id=\"$flow\", direction=\"initiator\"}, \"src\", \"$1\", \"node\", \"(.*)\"), \"src_domain\", \"$1\", \"domain\", \"shm/(.*)\"))\n  * on(session) group_left(dst, dst_domain) group by (session, dst, dst_domain) (label_replace(label_replace(mxl_grains_total{flow_id=\"$flow\", direction=\"target\"}, \"dst\", \"$1\", \"node\", \"(.*)\"), \"dst_domain\", \"$1\", \"domain\", \"shm/(.*)\")))",
+          "refId": "A",
+          "legendFormat": "{{src}} \u2192 {{dst}}",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 0,
+            "showPoints": "never",
+            "spanNulls": false,
+            "axisSoftMin": 0,
+            "axisSoftMax": 0.01
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": []
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 11,
+      "type": "timeseries",
+      "title": "Worker restarts",
+      "description": "Worker restarts per interval, by session and endpoint.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 17,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "max by (session, src, dst, src_domain, dst_domain, direction) (\n  (increase(mxl_worker_restarts{flow_id=\"$flow\"}[$__interval]))\n  * on(session) group_left(src, src_domain) group by (session, src, src_domain) (label_replace(label_replace(mxl_grains_total{flow_id=\"$flow\", direction=\"initiator\"}, \"src\", \"$1\", \"node\", \"(.*)\"), \"src_domain\", \"$1\", \"domain\", \"shm/(.*)\"))\n  * on(session) group_left(dst, dst_domain) group by (session, dst, dst_domain) (label_replace(label_replace(mxl_grains_total{flow_id=\"$flow\", direction=\"target\"}, \"dst\", \"$1\", \"node\", \"(.*)\"), \"dst_domain\", \"$1\", \"domain\", \"shm/(.*)\")))",
+          "refId": "A",
+          "legendFormat": "{{src}} \u2192 {{dst}} {{direction}}",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "bars",
+            "lineWidth": 1,
+            "fillOpacity": 80,
+            "showPoints": "never",
+            "spanNulls": false,
+            "axisSoftMin": 0,
+            "axisSoftMax": 1,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            }
+          },
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": []
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "interval": "1m"
+    },
+    {
+      "id": 12,
+      "type": "timeseries",
+      "title": "Media age (p50)",
+      "description": "Age of the media when the initiator reads it from the source flow, and when it reaches the target. The difference is the transfer time.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 25,
+        "w": 8,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "max by (session, src, dst, src_domain, dst_domain) (\n  ((mxl_source_latency_ns{flow_id=\"$flow\", direction=\"initiator\", quantile=\"0.5\"} >= 0) / 1e6)\n  * on(session) group_left(src, src_domain) group by (session, src, src_domain) (label_replace(label_replace(mxl_grains_total{flow_id=\"$flow\", direction=\"initiator\"}, \"src\", \"$1\", \"node\", \"(.*)\"), \"src_domain\", \"$1\", \"domain\", \"shm/(.*)\"))\n  * on(session) group_left(dst, dst_domain) group by (session, dst, dst_domain) (label_replace(label_replace(mxl_grains_total{flow_id=\"$flow\", direction=\"target\"}, \"dst\", \"$1\", \"node\", \"(.*)\"), \"dst_domain\", \"$1\", \"domain\", \"shm/(.*)\")))",
+          "refId": "A",
+          "legendFormat": "{{src}} \u2192 {{dst}} at source",
+          "range": true,
+          "instant": false
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "max by (session, src, dst, src_domain, dst_domain) (\n  ((mxl_source_latency_ns{flow_id=\"$flow\", direction=\"target\", quantile=\"0.5\"} >= 0) / 1e6)\n  * on(session) group_left(src, src_domain) group by (session, src, src_domain) (label_replace(label_replace(mxl_grains_total{flow_id=\"$flow\", direction=\"initiator\"}, \"src\", \"$1\", \"node\", \"(.*)\"), \"src_domain\", \"$1\", \"domain\", \"shm/(.*)\"))\n  * on(session) group_left(dst, dst_domain) group by (session, dst, dst_domain) (label_replace(label_replace(mxl_grains_total{flow_id=\"$flow\", direction=\"target\"}, \"dst\", \"$1\", \"node\", \"(.*)\"), \"dst_domain\", \"$1\", \"domain\", \"shm/(.*)\")))",
+          "refId": "B",
+          "legendFormat": "{{src}} \u2192 {{dst}} on arrival",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 0,
+            "showPoints": "never",
+            "spanNulls": false,
+            "axisSoftMin": 0
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": ".* at source"
+            },
+            "properties": [
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "fill": "dash",
+                  "dash": [
+                    10,
+                    10
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": []
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 13,
+      "type": "timeseries",
+      "title": "Media age (p99)",
+      "description": "As Media age (p50), at the 99th percentile.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 25,
+        "w": 8,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "max by (session, src, dst, src_domain, dst_domain) (\n  ((mxl_source_latency_ns{flow_id=\"$flow\", direction=\"initiator\", quantile=\"0.99\"} >= 0) / 1e6)\n  * on(session) group_left(src, src_domain) group by (session, src, src_domain) (label_replace(label_replace(mxl_grains_total{flow_id=\"$flow\", direction=\"initiator\"}, \"src\", \"$1\", \"node\", \"(.*)\"), \"src_domain\", \"$1\", \"domain\", \"shm/(.*)\"))\n  * on(session) group_left(dst, dst_domain) group by (session, dst, dst_domain) (label_replace(label_replace(mxl_grains_total{flow_id=\"$flow\", direction=\"target\"}, \"dst\", \"$1\", \"node\", \"(.*)\"), \"dst_domain\", \"$1\", \"domain\", \"shm/(.*)\")))",
+          "refId": "A",
+          "legendFormat": "{{src}} \u2192 {{dst}} at source",
+          "range": true,
+          "instant": false
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "max by (session, src, dst, src_domain, dst_domain) (\n  ((mxl_source_latency_ns{flow_id=\"$flow\", direction=\"target\", quantile=\"0.99\"} >= 0) / 1e6)\n  * on(session) group_left(src, src_domain) group by (session, src, src_domain) (label_replace(label_replace(mxl_grains_total{flow_id=\"$flow\", direction=\"initiator\"}, \"src\", \"$1\", \"node\", \"(.*)\"), \"src_domain\", \"$1\", \"domain\", \"shm/(.*)\"))\n  * on(session) group_left(dst, dst_domain) group by (session, dst, dst_domain) (label_replace(label_replace(mxl_grains_total{flow_id=\"$flow\", direction=\"target\"}, \"dst\", \"$1\", \"node\", \"(.*)\"), \"dst_domain\", \"$1\", \"domain\", \"shm/(.*)\")))",
+          "refId": "B",
+          "legendFormat": "{{src}} \u2192 {{dst}} on arrival",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 0,
+            "showPoints": "never",
+            "spanNulls": false,
+            "axisSoftMin": 0
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": ".* at source"
+            },
+            "properties": [
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "fill": "dash",
+                  "dash": [
+                    10,
+                    10
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": []
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 14,
+      "type": "timeseries",
+      "title": "Network latency",
+      "description": "Receive time minus the transmit timestamp the initiator writes into the grain.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 25,
+        "w": 8,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "max by (session, src, dst, src_domain, dst_domain) (\n  ((mxl_network_latency_ns{flow_id=\"$flow\", direction=\"target\", quantile=\"0.5\"} >= 0) / 1e6 > 0)\n  * on(session) group_left(src, src_domain) group by (session, src, src_domain) (label_replace(label_replace(mxl_grains_total{flow_id=\"$flow\", direction=\"initiator\"}, \"src\", \"$1\", \"node\", \"(.*)\"), \"src_domain\", \"$1\", \"domain\", \"shm/(.*)\"))\n  * on(session) group_left(dst, dst_domain) group by (session, dst, dst_domain) (label_replace(label_replace(mxl_grains_total{flow_id=\"$flow\", direction=\"target\"}, \"dst\", \"$1\", \"node\", \"(.*)\"), \"dst_domain\", \"$1\", \"domain\", \"shm/(.*)\")))",
+          "refId": "A",
+          "legendFormat": "{{src}} \u2192 {{dst}} p50",
+          "range": true,
+          "instant": false
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "max by (session, src, dst, src_domain, dst_domain) (\n  ((mxl_network_latency_ns{flow_id=\"$flow\", direction=\"target\", quantile=\"0.99\"} >= 0) / 1e6 > 0)\n  * on(session) group_left(src, src_domain) group by (session, src, src_domain) (label_replace(label_replace(mxl_grains_total{flow_id=\"$flow\", direction=\"initiator\"}, \"src\", \"$1\", \"node\", \"(.*)\"), \"src_domain\", \"$1\", \"domain\", \"shm/(.*)\"))\n  * on(session) group_left(dst, dst_domain) group by (session, dst, dst_domain) (label_replace(label_replace(mxl_grains_total{flow_id=\"$flow\", direction=\"target\"}, \"dst\", \"$1\", \"node\", \"(.*)\"), \"dst_domain\", \"$1\", \"domain\", \"shm/(.*)\")))",
+          "refId": "B",
+          "legendFormat": "{{src}} \u2192 {{dst}} p99",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 0,
+            "showPoints": "never",
+            "spanNulls": false,
+            "axisSoftMin": 0
+          },
+          "noValue": "Only video carries a transmit timestamp"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": ".* p50"
+            },
+            "properties": [
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "fill": "dash",
+                  "dash": [
+                    10,
+                    10
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": []
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 15,
+      "type": "state-timeline",
+      "title": "Activity",
+      "description": "Source written: the source flow's head advances. Replica written: the target writes the replica. Replica read: something reads the replica. The replicator's flags are hysteretic and coarse.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 33,
+        "w": 24,
+        "h": 6
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "max by (session, src, dst, src_domain, dst_domain) (\n  (mxl_writer_active{flow_id=\"$flow\", direction=\"initiator\"})\n  * on(session) group_left(src, src_domain) group by (session, src, src_domain) (label_replace(label_replace(mxl_grains_total{flow_id=\"$flow\", direction=\"initiator\"}, \"src\", \"$1\", \"node\", \"(.*)\"), \"src_domain\", \"$1\", \"domain\", \"shm/(.*)\"))\n  * on(session) group_left(dst, dst_domain) group by (session, dst, dst_domain) (label_replace(label_replace(mxl_grains_total{flow_id=\"$flow\", direction=\"target\"}, \"dst\", \"$1\", \"node\", \"(.*)\"), \"dst_domain\", \"$1\", \"domain\", \"shm/(.*)\")))",
+          "refId": "A",
+          "legendFormat": "{{src}} \u2192 {{dst}}: source written",
+          "range": true,
+          "instant": false
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "max by (session, src, dst, src_domain, dst_domain) (\n  (mxl_writer_active{flow_id=\"$flow\", direction=\"target\"})\n  * on(session) group_left(src, src_domain) group by (session, src, src_domain) (label_replace(label_replace(mxl_grains_total{flow_id=\"$flow\", direction=\"initiator\"}, \"src\", \"$1\", \"node\", \"(.*)\"), \"src_domain\", \"$1\", \"domain\", \"shm/(.*)\"))\n  * on(session) group_left(dst, dst_domain) group by (session, dst, dst_domain) (label_replace(label_replace(mxl_grains_total{flow_id=\"$flow\", direction=\"target\"}, \"dst\", \"$1\", \"node\", \"(.*)\"), \"dst_domain\", \"$1\", \"domain\", \"shm/(.*)\")))",
+          "refId": "B",
+          "legendFormat": "{{src}} \u2192 {{dst}}: replica written",
+          "range": true,
+          "instant": false
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "max by (session, src, dst, src_domain, dst_domain) (\n  (mxl_reader_active{flow_id=\"$flow\", direction=\"target\"})\n  * on(session) group_left(src, src_domain) group by (session, src, src_domain) (label_replace(label_replace(mxl_grains_total{flow_id=\"$flow\", direction=\"initiator\"}, \"src\", \"$1\", \"node\", \"(.*)\"), \"src_domain\", \"$1\", \"domain\", \"shm/(.*)\"))\n  * on(session) group_left(dst, dst_domain) group by (session, dst, dst_domain) (label_replace(label_replace(mxl_grains_total{flow_id=\"$flow\", direction=\"target\"}, \"dst\", \"$1\", \"node\", \"(.*)\"), \"dst_domain\", \"$1\", \"domain\", \"shm/(.*)\")))",
+          "refId": "C",
+          "legendFormat": "{{src}} \u2192 {{dst}}: replica read",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "Idle",
+                  "color": "text",
+                  "index": 0
+                },
+                "1": {
+                  "text": "Active",
+                  "color": "green",
+                  "index": 1
+                }
+              }
+            }
+          ],
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          },
+          "custom": {
+            "fillOpacity": 80,
+            "lineWidth": 0
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "showValue": "never",
+        "mergeValues": true,
+        "rowHeight": 0.8,
+        "alignValue": "left",
+        "legend": {
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      }
+    }
+  ]
+}
